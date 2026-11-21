@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batloung Farm Distribution System - Maseru, Lesotho</title>
+    <!-- Google Fonts and Font Awesome (No Emojis) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/style.css?v=20261121b">
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app">
+        <!-- 1. Authentication View -->
+        <section id="authView" class="auth-wrapper">
+            <div class="auth-ambient-orb orb-1"></div>
+            <div class="auth-ambient-orb orb-2"></div>
+            
+            <div class="auth-card">
+                <div class="auth-brand">
+                    <div class="brand-icon">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <h1>Batloung Farm</h1>
+                    <p class="brand-subtitle">Fresh Produce Distribution Management System</p>
+                    <span class="region-badge"><i class="fa-solid fa-location-dot"></i> Maseru, Lesotho</span>
+                </div>
+
+                <div class="role-selector">
+                    <button type="button" class="role-tab active" data-role="vendor" onclick="selectRole('vendor')">
+                        <i class="fa-solid fa-store"></i> Vendor Portal
+                    </button>
+                    <button type="button" class="role-tab" data-role="admin" onclick="selectRole('admin')">
+                        <i class="fa-solid fa-user-shield"></i> Administrator
+                    </button>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <div class="input-icon-field">
+                            <i class="fa-regular fa-envelope"></i>
+                            <input type="email" id="loginEmail" required placeholder="name@vendor.ls" autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="input-icon-field">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="loginPassword" required placeholder="Enter password" autocomplete="current-password">
+                            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility()">
+                                <i class="fa-regular fa-eye" id="pwdEye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="authAlert" class="auth-alert hidden"></div>
+
+                    <button type="submit" id="loginBtn" class="btn btn-primary btn-block">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In to Portal
+                    </button>
+                </form>
+
+                <div class="quick-credentials">
+                    <span class="cred-title">Demonstration Credentials:</span>
+                    <div class="cred-grid">
+                        <button type="button" class="cred-chip" onclick="fillCreds('admin@batloung.farm', 'Admin@123', 'admin')">
+                            <strong>Admin:</strong> admin@batloung.farm
+                        </button>
+                        <button type="button" class="cred-chip" onclick="fillCreds('lerato@vendor.ls', 'Vendor@123', 'vendor')">
+                            <strong>Vendor:</strong> lerato@vendor.ls
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Registered Vendor Quick Login Cards -->
+                <div id="vendorQuickLoginSection" style="margin-top:1.25rem; display:none;">
+                    <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted,#64748b);font-weight:700;margin-bottom:0.6rem;">
+                        <i class="fa-solid fa-store" style="margin-right:0.4rem;"></i>Registered Vendor Accounts
+                    </div>
+                    <div id="vendorLoginCards" style="display:flex;flex-direction:column;gap:0.45rem;max-height:200px;overflow-y:auto;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Portal Workspace View -->
+        <div id="portalView" class="portal-layout hidden">
+            <!-- Top Navigation Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-toggle" onclick="toggleSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="topbar-brand">
+                        <div class="brand-mini-icon"><i class="fa-solid fa-leaf"></i></div>
+                        <div>
+                            <span class="topbar-title">Batloung Farm</span>
+                            <span class="topbar-sub">Maseru Central Depot</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="user-profile-badge">
+                        <div class="avatar-circle" id="userAvatar">BF</div>
+                        <div class="profile-info">
+                            <span class="profile-name" id="userNameLabel">Loading...</span>
+                            <span class="profile-role" id="userRoleBadge">Vendor</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-signout" onclick="handleLogout()" title="Sign Out">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="portal-body">
+                <!-- Navigation Sidebar -->
+                <aside class="sidebar" id="sidebar">
+                    <div class="nav-section-label">Main Navigation</div>
+                    <nav class="nav-menu">
+                        <button class="nav-item active" onclick="switchTab('dashboard')">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        <button class="nav-item" onclick="switchTab('livemap')">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            <span>Live Order Map</span>
+                            <span class="pulse-indicator"></span>
+                        </button>
+                        <button class="nav-item" onclick="switchTab('orders')">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            <span>Sales and Orders</span>
+                        </button>
+
+                        <!-- Admin Exclusive Tabs -->
+                        <div class="admin-only-section hidden" id="adminMenuSection">
+                            <div class="nav-section-label">Administration</div>
+                            <button class="nav-item" onclick="switchTab('fruits')">
+                                <i class="fa-solid fa-apple-whole"></i>
+                                <span>Fruits and Stock</span>
+                            </button>
+                            <button class="nav-item" onclick="switchTab('suppliers')">
+                                <i class="fa-solid fa-truck-field"></i>
+                                <span>SA Suppliers</span>
+                            </button>
+                            <button class="nav-item" onclick="switchTab('purchases')">
+                                <i class="fa-solid fa-cart-flatbed"></i>
+                                <span>Stock Purchases</span>
+                            </button>
+                            <button class="nav-item" onclick="switchTab('vendors')">
+                                <i class="fa-solid fa-shop"></i>
+                                <span>Vendor Accounts</span>
+                            </button>
+                            <button class="nav-item" onclick="switchTab('reports')">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                <span>Management Reports</span>
+                            </button>
+                        </div>
+                    </nav>
+
+                    <div class="sidebar-depot-card">
+                        <span class="depot-status-dot"></span>
+                        <div>
+                            <strong>Distribution Status</strong>
+                            <p>Depot to Lesotho Retail Active</p>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Dynamic Workspace Content -->
+                <main class="main-content">
+                    <!-- Tab A: Dashboard -->
+                    <section id="tab-dashboard" class="content-tab">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title" id="welcomeMessage">Overview Dashboard</h2>
+                                <p class="page-subtitle">Fresh produce inventory and live order logistics</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewOrderModal()">
+                                    <i class="fa-solid fa-cart-plus"></i> Place Order
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hero Banner with Fruit Tree and Orchard Backdrop -->
+                        <div class="dashboard-hero-banner">
+                            <div>
+                                <span class="hero-tag"><i class="fa-solid fa-leaf"></i> Maseru Central Farm Depot</span>
+                                <h2 class="hero-title">Batloung Fresh Fruit Distribution</h2>
+                                <p class="hero-desc">Supplying Lesotho street vendors and small retailers with premium farm harvests from South African orchards.</p>
+                            </div>
+                            <div class="hero-actions">
+                                <button class="btn btn-primary" onclick="openNewOrderModal()">
+                                    <i class="fa-solid fa-cart-plus"></i> New Fruit Order
+                                </button>
+                                <button class="btn btn-ghost" onclick="switchTab('livemap')">
+                                    <i class="fa-solid fa-map-location-dot"></i> Live Map
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Stats Cards -->
+                        <div class="stats-grid" id="statsGrid">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Vendor Resale Price and Profit Calculator (Vendors dont calculate, we do it for them) -->
+                        <div class="vendor-calc-card" id="vendorProfitCalcSection">
+                            <div class="calc-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-calculator"></i> Vendor Resale Price and Profit Calculator</h3>
+                                    <p>Vendors do not calculate: select your fruit, set your street price, and we calculate your exact cash profit instantly.</p>
+                                </div>
+                                <span class="badge badge-confirmed">Instant Profit Readout</span>
+                            </div>
+
+                            <div class="calc-grid">
+                                <!-- Inputs Panel -->
+                                <div class="calc-input-panel">
+                                    <div class="form-group">
+                                        <label for="calcFruitSelect">Select Purchased Fruit Box</label>
+                                        <select id="calcFruitSelect" class="form-control" onchange="recalculateVendorProfit()">
+                                            <option value="apples_med" data-cost="75" data-kg="10" data-fruit="Apples" data-size="Medium">Apples (Medium Box - 10 kg) - Bought at R75.00</option>
+                                            <option value="apples_lrg" data-cost="120" data-kg="18" data-fruit="Apples" data-size="Large">Apples (Large Box - 18 kg) - Bought at R120.00</option>
+                                            <option value="apples_sml" data-cost="45" data-kg="5" data-fruit="Apples" data-size="Small">Apples (Small Box - 5 kg) - Bought at R45.00</option>
+                                            <option value="bananas_med" data-cost="70" data-kg="9" data-fruit="Bananas" data-size="Medium">Bananas (Medium Box - 9 kg) - Bought at R70.00</option>
+                                            <option value="oranges_lrg" data-cost="110" data-kg="20" data-fruit="Oranges" data-size="Large">Oranges (Large Box - 20 kg) - Bought at R110.00</option>
+                                            <option value="grapes_med" data-cost="105" data-kg="7" data-fruit="Grapes" data-size="Medium">Table Grapes (Medium Box - 7 kg) - Bought at R105.00</option>
+                                            <option value="mangoes_sml" data-cost="60" data-kg="5" data-fruit="Mangoes" data-size="Small">Mangoes (Small Box - 5 kg) - Bought at R60.00</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="calcSellPrice">Your Retail Selling Price (Per Kilogram / Pack)</label>
+                                        <div class="input-icon-field">
+                                            <i class="fa-solid fa-tag"></i>
+                                            <input type="number" step="0.50" id="calcSellPrice" class="form-control" value="25.00" oninput="recalculateVendorProfit()">
+                                        </div>
+                                        <div class="pocket-pills" style="margin-top: 0.5rem;">
+                                            <button type="button" class="pocket-pill" onclick="setCalcSellingPrice(15)">R15 / kg</button>
+                                            <button type="button" class="pocket-pill" onclick="setCalcSellingPrice(20)">R20 / kg</button>
+                                            <button type="button" class="pocket-pill active" onclick="setCalcSellingPrice(25)">R25 / kg</button>
+                                            <button type="button" class="pocket-pill" onclick="setCalcSellingPrice(30)">R30 / kg</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="calc-pocket-box">
+                                        <label>How many boxes are you selling at your stall today?</label>
+                                        <div class="pocket-pills">
+                                            <button type="button" class="pocket-pill active" data-boxes="1" onclick="setDailyBoxes(1, this)">1 Box</button>
+                                            <button type="button" class="pocket-pill" data-boxes="3" onclick="setDailyBoxes(3, this)">3 Boxes</button>
+                                            <button type="button" class="pocket-pill" data-boxes="5" onclick="setDailyBoxes(5, this)">5 Boxes</button>
+                                            <button type="button" class="pocket-pill" data-boxes="10" onclick="setDailyBoxes(10, this)">10 Boxes</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Live Results Panel -->
+                                <div class="calc-result-panel">
+                                    <div class="calc-result-highlight">
+                                        <div class="calc-highlight-text">Your Clean Profit Per Kilogram</div>
+                                        <div class="calc-highlight-val" id="calcProfitPerKgDisplay">+R17.50 / kg</div>
+                                        <div id="calcSummaryBanner" style="font-size: 0.88rem; color: #e0f2fe; font-weight: 600;">
+                                            You bought at R7.50/kg. Sell at R25.00/kg -> You make R17.50 profit per kg.
+                                        </div>
+                                    </div>
+
+                                    <div class="calc-breakdown-row">
+                                        <span>Wholesale Buying Cost:</span>
+                                        <strong id="calcWholesaleCostDisplay">R75.00 per box (R7.50 / kg)</strong>
+                                    </div>
+                                    <div class="calc-breakdown-row">
+                                        <span>Total Retail Sales Revenue:</span>
+                                        <strong id="calcRevenueDisplay">R250.00 per box</strong>
+                                    </div>
+                                    <div class="calc-breakdown-row">
+                                        <span>Total Profit Per Box:</span>
+                                        <strong id="calcBoxProfitDisplay" style="color: var(--brand-sky);">+R175.00 profit / box</strong>
+                                    </div>
+                                    <div class="calc-breakdown-row">
+                                        <span>Profit Margin Markup:</span>
+                                        <strong id="calcMarginDisplay" style="color: #34d399;">+233% markup</strong>
+                                    </div>
+
+                                    <div style="background: rgba(14, 165, 233, 0.12); border-left: 3px solid var(--brand-sky); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                                        <span style="font-size: 0.8rem; color: var(--text-secondary); display: block;">Your Total Daily Cash in Hand:</span>
+                                        <strong id="calcDailyEarningsDisplay" style="font-size: 1.15rem; color: var(--brand-sky); font-family: var(--font-heading);">
+                                            Sell 1 box -> Pocket +R175.00 profit!
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Highlights Grid -->
+                        <div class="dashboard-split">
+                            <!-- Recent Orders Table -->
+                            <div class="card card-table">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span>Recent Orders and Transit Tracking</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-ghost" onclick="switchTab('orders')">View All</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Order #</th>
+                                                <th>Vendor</th>
+                                                <th>Status</th>
+                                                <th>Distance and ETA</th>
+                                                <th>Total</th>
+                                                <th>Payment</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recentOrdersTbody">
+                                            <tr><td colspan="7" class="text-center">Loading orders...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Live Stock Level Overview by Packaging Size -->
+                            <div class="card card-table">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <i class="fa-solid fa-cubes-stacked"></i>
+                                        <span>Packaging Stock Balances</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-ghost" onclick="switchTab('fruits')">Manage</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Fruit</th>
+                                                <th>Small</th>
+                                                <th>Medium</th>
+                                                <th>Large</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stockSummaryTbody">
+                                            <tr><td colspan="4" class="text-center">Loading stock balances...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab B: Live Interactive GPS Tracking Map -->
+                    <section id="tab-livemap" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Live Distribution Tracking Map</h2>
+                                <p class="page-subtitle">Real-time route tracing from Maseru Depot to vendor points across Lesotho</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-ghost" onclick="refreshMapData()">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Map
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="map-container-layout">
+                            <!-- Left: Live Orders Feed -->
+                            <div class="map-sidebar">
+                                <div class="map-sidebar-header">
+                                    <i class="fa-solid fa-satellite-dish"></i>
+                                    <span>Active Orders Feed</span>
+                                </div>
+                                <div id="mapOrdersFeed" class="map-orders-feed">
+                                    <!-- Dynamic order list with distance and ETA -->
+                                </div>
+                            </div>
+
+                            <!-- Right: Interactive Map -->
+                            <div class="map-canvas-wrapper">
+                                <div id="liveOrderMap" class="leaflet-map-frame"></div>
+                                <div class="map-legend">
+                                    <div class="legend-item"><span class="legend-dot depot"></span> Depot (Maseru Central)</div>
+                                    <div class="legend-item"><span class="legend-dot pending"></span> Pending Confirmation</div>
+                                    <div class="legend-item"><span class="legend-dot transit"></span> Out For Delivery</div>
+                                    <div class="legend-item"><span class="legend-dot collection"></span> Ready For Collection</div>
+                                    <div class="legend-item"><span class="legend-dot delivered"></span> Delivered</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab C: Orders View -->
+                    <section id="tab-orders" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Order Records and Invoices</h2>
+                                <p class="page-subtitle">Full transaction audit trail, payment status, and order dispatch</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewOrderModal()">
+                                    <i class="fa-solid fa-plus"></i> New Order
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Order ID</th>
+                                            <th>Date</th>
+                                            <th>Vendor</th>
+                                            <th>Items Ordered</th>
+                                            <th>Type</th>
+                                            <th>Total (LSL)</th>
+                                            <th>Payment Method</th>
+                                            <th>Payment Status</th>
+                                            <th>Order Status</th>
+                                            <th>Manage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="allOrdersTbody">
+                                        <tr><td colspan="9" class="text-center">Loading orders...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab D: Fruits and Stock Management (Admin) -->
+                    <section id="tab-fruits" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Fruit Stock and Packaging Management</h2>
+                                <p class="page-subtitle">Separate stock tracking for small, medium, and large packaging sizes</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewFruitModal()">
+                                    <i class="fa-solid fa-plus"></i> Add Fruit Type
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fruit ID</th>
+                                            <th>Fruit Name</th>
+                                            <th>Packaging Size</th>
+                                            <th>Cost Price (LSL)</th>
+                                            <th>Selling Price (LSL)</th>
+                                            <th>Available Boxes</th>
+                                            <th>Stock Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fruitsStockTbody">
+                                        <tr><td colspan="7" class="text-center">Loading fruit stock...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab E: Suppliers (Admin) -->
+                    <section id="tab-suppliers" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">South African Fruit Suppliers</h2>
+                                <p class="page-subtitle">Provinces: Gauteng, Free State, KwaZulu-Natal, Western Cape, Limpopo, etc.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewSupplierModal()">
+                                    <i class="fa-solid fa-plus"></i> Register Supplier
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Supplier ID</th>
+                                            <th>Business Name</th>
+                                            <th>Contact Person</th>
+                                            <th>Phone</th>
+                                            <th>Province</th>
+                                            <th>Address</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="suppliersTbody">
+                                        <tr><td colspan="6" class="text-center">Loading suppliers...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab F: Stock Purchases (Admin) -->
+                    <section id="tab-purchases" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Supplier Purchases and Inward Stock</h2>
+                                <p class="page-subtitle">Record incoming fruit boxes from South African suppliers with automatic stock updates</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewPurchaseModal()">
+                                    <i class="fa-solid fa-cart-arrow-down"></i> Record Purchase
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Purchase ID</th>
+                                            <th>Date</th>
+                                            <th>Supplier</th>
+                                            <th>Province</th>
+                                            <th>Total Boxes</th>
+                                            <th>Total Cost (LSL)</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="purchasesTbody">
+                                        <tr><td colspan="7" class="text-center">Loading purchases...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab G: Vendors (Admin) -->
+                    <section id="tab-vendors" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Registered Vendors and Balances</h2>
+                                <p class="page-subtitle">Street vendors and retailers across Maseru, Lesotho with credit balances</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="btn btn-primary" onclick="openNewVendorModal()">
+                                    <i class="fa-solid fa-user-plus"></i> Add Vendor
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Vendor ID</th>
+                                            <th>Vendor Name</th>
+                                            <th>Phone Number</th>
+                                            <th>Location</th>
+                                            <th>Registered Date</th>
+                                            <th>Outstanding Balance (LSL)</th>
+                                            <th>Total Orders</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vendorsTbody">
+                                        <tr><td colspan="8" class="text-center">Loading vendors...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab H: Reports (Admin) -->
+                    <section id="tab-reports" class="content-tab hidden">
+                        <div class="page-header">
+                            <div>
+                                <h2 class="page-title">Executive Management Reports</h2>
+                                <p class="page-subtitle">Sales Reports and Business Analytics</p>
+                            </div>
+                        </div>
+
+                        <div class="reports-grid">
+                            <!-- Report 1: Top 5 Fruits -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <i class="fa-solid fa-ranking-star"></i>
+                                        <span>Top 5 Frequently Sold Fruits</span>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Rank</th>
+                                                <th>Fruit Name</th>
+                                                <th>Boxes Sold</th>
+                                                <th>Revenue (LSL)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reportTopFruitsTbody">
+                                            <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Report 3: Highest Box Vendor -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <i class="fa-solid fa-trophy"></i>
+                                        <span>Top Vendor by Box Volume</span>
+                                    </div>
+                                </div>
+                                <div class="card-body" id="reportTopVendorCard">
+                                    <p class="text-center">Loading top vendor...</p>
+                                </div>
+                            </div>
+
+                            <!-- Report 2: Sales Revenue by Date Range -->
+                            <div class="card full-width">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                        <span>Total Sales Revenue by Date Range</span>
+                                    </div>
+                                    <div class="date-filter-group">
+                                        <input type="date" id="reportStartDate" class="filter-input">
+                                        <span>to</span>
+                                        <input type="date" id="reportEndDate" class="filter-input">
+                                        <button class="btn btn-sm btn-primary" onclick="loadRevenueReport()">Filter</button>
+                                    </div>
+                                </div>
+                                <div class="revenue-summary-bar" id="revenueSummaryContainer">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal 1: Place New Order -->
+    <div id="newOrderModal" class="modal-backdrop hidden">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-shopping"></i> Place Fruit Order</h3>
+                <button type="button" class="modal-close" onclick="closeModal('newOrderModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newOrderForm" onsubmit="submitNewOrder(event)">
+                <div class="modal-body">
+                    <!-- Vendor Selector (Admin Only) -->
+                    <div class="form-group" id="vendorSelectGroup">
+                        <label for="orderVendorSelect">Select Vendor</label>
+                        <select id="orderVendorSelect" class="form-control" onchange="onVendorSelectedForOrder()">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="order-items-wrapper">
+                        <label>Select Fruits and Packaging Sizes</label>
+                        <table class="data-table order-items-table">
+                            <thead>
+                                <tr>
+                                    <th>Fruit</th>
+                                    <th>Packaging Size</th>
+                                    <th>Unit Price</th>
+                                    <th>Available Stock</th>
+                                    <th>Quantity (Boxes)</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderItemsTbody">
+                                <!-- Dynamic item rows -->
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-ghost mt-2" onclick="addOrderItemRow()">
+                            <i class="fa-solid fa-plus"></i> Add Item
+                        </button>
+                    </div>
+
+                    <div class="order-total-banner">
+                        <span>Total Payable Amount:</span>
+                        <strong id="orderTotalDisplay">LSL 0.00</strong>
+                    </div>
+
+                    <!-- Delivery and Location -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="orderDeliveryType">Delivery Method</label>
+                            <select id="orderDeliveryType" class="form-control" onchange="toggleDeliveryInputs()">
+                                <option value="delivery">Delivery to Vendor Stall or Retail</option>
+                                <option value="collection">Self-Collection from Maseru Depot</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="orderPaymentMethod">Payment Method</label>
+                            <select id="orderPaymentMethod" class="form-control">
+                                <option value="Cash">Cash on Delivery</option>
+                                <option value="Mobile Money">Mobile Money (M-Pesa / EcoCash)</option>
+                                <option value="Credit">Credit (Outstanding Payment)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="locationPickerGroup">
+                        <label>Delivery GPS Coordinates (Maseru Area)</label>
+                        <div class="coord-inputs">
+                            <input type="number" step="any" id="orderLat" class="form-control" placeholder="Latitude (-29.3138)" required>
+                            <input type="number" step="any" id="orderLng" class="form-control" placeholder="Longitude (27.4842)" required>
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="useDefaultVendorLocation()">
+                                <i class="fa-solid fa-location-crosshairs"></i> Default Stall
+                            </button>
+                        </div>
+                        <p class="form-hint">Distance and travel time from Batloung Depot are calculated automatically.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="orderNotes">Order Notes (Optional)</label>
+                        <textarea id="orderNotes" class="form-control" rows="2" placeholder="Specific handling instructions..."></textarea>
+                    </div>
+
+                    <div id="orderErrorAlert" class="auth-alert hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('newOrderModal')">Cancel</button>
+                    <button type="submit" id="submitOrderBtn" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Confirm and Place Order
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Record Stock Purchase -->
+    <div id="newPurchaseModal" class="modal-backdrop hidden">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-arrow-down"></i> Record Inward Stock Purchase</h3>
+                <button type="button" class="modal-close" onclick="closeModal('newPurchaseModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newPurchaseForm" onsubmit="submitNewPurchase(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="purchaseSupplierSelect">Select South African Supplier</label>
+                        <select id="purchaseSupplierSelect" class="form-control" required>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="order-items-wrapper">
+                        <label>Purchased Fruit Items</label>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fruit</th>
+                                    <th>Packaging Size</th>
+                                    <th>Unit Cost (LSL)</th>
+                                    <th>Quantity (Boxes)</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseItemsTbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-ghost mt-2" onclick="addPurchaseItemRow()">
+                            <i class="fa-solid fa-plus"></i> Add Fruit
+                        </button>
+                    </div>
+
+                    <div class="order-total-banner">
+                        <span>Total Purchase Cost:</span>
+                        <strong id="purchaseTotalDisplay">LSL 0.00</strong>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="purchaseNotes">Purchase Notes</label>
+                        <input type="text" id="purchaseNotes" class="form-control" placeholder="Truck delivery invoice number, temperature status, etc.">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('newPurchaseModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Confirm and Save Purchase
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Update Order Status -->
+    <div id="statusModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-arrows-spin"></i> Update Order Status</h3>
+                <button type="button" class="modal-close" onclick="closeModal('statusModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitOrderStatusUpdate(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="statusOrderId">
+                    <div class="form-group">
+                        <label for="orderStatusSelect">Select Logistics Status</label>
+                        <select id="orderStatusSelect" class="form-control">
+                            <option value="pending">Pending (Awaiting Confirmation)</option>
+                            <option value="confirmed">Confirmed by Administrator</option>
+                            <option value="processing">Processing / Box Packing</option>
+                            <option value="out_for_delivery">Out For Delivery (Transit)</option>
+                            <option value="ready_for_collection">Ready For Collection (At Depot)</option>
+                            <option value="delivered">Delivered / Handed Over</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('statusModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Save Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Record Payment -->
+    <div id="paymentModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-money-bill-transfer"></i> Record Vendor Payment</h3>
+                <button type="button" class="modal-close" onclick="closeModal('paymentModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="submitPayment(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="paymentOrderId">
+                    <div class="form-group">
+                        <label>Order Details</label>
+                        <p id="paymentOrderSummary" class="text-muted"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentAmountInput">Payment Amount (LSL)</label>
+                        <input type="number" step="0.01" id="paymentAmountInput" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMethodSelect">Payment Method</label>
+                        <select id="paymentMethodSelect" class="form-control">
+                            <option value="Cash">Cash</option>
+                            <option value="Mobile Money">Mobile Money (M-Pesa / EcoCash)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Record Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 5: Add New Fruit Type -->
+    <div id="newFruitModal" class="modal-backdrop hidden">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-apple-whole"></i> Add New Fruit Type</h3>
+                <button type="button" class="modal-close" onclick="closeModal('newFruitModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newFruitForm" onsubmit="submitNewFruit(event)">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newFruitName">Fruit Name</label>
+                            <input type="text" id="newFruitName" class="form-control" placeholder="e.g. Peaches, Strawberries, Watermelons" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newFruitStatus">Availability Status</label>
+                            <select id="newFruitStatus" class="form-control">
+                                <option value="active">Active (Available)</option>
+                                <option value="seasonal">Seasonal</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newFruitDesc">Description</label>
+                        <textarea id="newFruitDesc" class="form-control" rows="2" placeholder="Describe the fruit quality, grade, or packaging..."></textarea>
+                    </div>
+
+                    <label class="form-section-title">Packaging Size Prices and Wholesale Costs (LSL)</label>
+                    <div class="pricing-sizes-grid">
+                        <div class="size-price-card">
+                            <div class="size-badge-header">Small Box</div>
+                            <div class="form-group">
+                                <label for="priceSmallCost">Wholesale Cost (LSL)</label>
+                                <input type="number" step="0.01" id="priceSmallCost" class="form-control" placeholder="45.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="priceSmallSell">Selling Price (LSL)</label>
+                                <input type="number" step="0.01" id="priceSmallSell" class="form-control" placeholder="70.00" required>
+                            </div>
+                        </div>
+
+                        <div class="size-price-card">
+                            <div class="size-badge-header">Medium Box</div>
+                            <div class="form-group">
+                                <label for="priceMedCost">Wholesale Cost (LSL)</label>
+                                <input type="number" step="0.01" id="priceMedCost" class="form-control" placeholder="75.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="priceMedSell">Selling Price (LSL)</label>
+                                <input type="number" step="0.01" id="priceMedSell" class="form-control" placeholder="115.00" required>
+                            </div>
+                        </div>
+
+                        <div class="size-price-card">
+                            <div class="size-badge-header">Large Box</div>
+                            <div class="form-group">
+                                <label for="priceLargeCost">Wholesale Cost (LSL)</label>
+                                <input type="number" step="0.01" id="priceLargeCost" class="form-control" placeholder="120.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="priceLargeSell">Selling Price (LSL)</label>
+                                <input type="number" step="0.01" id="priceLargeSell" class="form-control" placeholder="180.00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="newFruitAlert" class="auth-alert hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('newFruitModal')">Cancel</button>
+                    <button type="submit" id="saveFruitBtn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 6: Register South African Supplier -->
+    <div id="newSupplierModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-truck-field"></i> Register Supplier</h3>
+                <button type="button" class="modal-close" onclick="closeModal('newSupplierModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newSupplierForm" onsubmit="submitNewSupplier(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="supplierBusinessName">Business Name</label>
+                        <input type="text" id="supplierBusinessName" class="form-control" placeholder="e.g. Free State Apple Orchards" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierContact">Contact Person</label>
+                            <input type="text" id="supplierContact" class="form-control" placeholder="e.g. Johan Van Der Merwe" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplierPhone">Phone Number</label>
+                            <input type="text" id="supplierPhone" class="form-control" placeholder="e.g. +27 51 405 8000" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplierProvince">South African Province</label>
+                        <select id="supplierProvince" class="form-control" required>
+                            <option value="">Select South African Province</option>
+                            <option value="Free State">Free State</option>
+                            <option value="Gauteng">Gauteng</option>
+                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                            <option value="Western Cape">Western Cape</option>
+                            <option value="Eastern Cape">Eastern Cape</option>
+                            <option value="Limpopo">Limpopo</option>
+                            <option value="Mpumalanga">Mpumalanga</option>
+                            <option value="North West">North West</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplierAddress">Physical Address / Farm Location</label>
+                        <input type="text" id="supplierAddress" class="form-control" placeholder="e.g. Farm 42, Bethlehem Road, Free State" required>
+                    </div>
+                    <div id="newSupplierAlert" class="auth-alert hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('newSupplierModal')">Cancel</button>
+                    <button type="submit" id="saveSupplierBtn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 7: Register New Vendor -->
+    <div id="newVendorModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-plus"></i> Register New Vendor</h3>
+                <button type="button" class="modal-close" onclick="closeModal('newVendorModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newVendorForm" onsubmit="submitNewVendor(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="vendorBusinessName">Vendor / Retailer Name</label>
+                        <input type="text" id="vendorBusinessName" class="form-control" placeholder="e.g. Mpho Fresh Fruit Stall" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendorEmail">Email Address (Login)</label>
+                            <input type="email" id="vendorEmail" class="form-control" placeholder="mpho@vendor.ls" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorPassword">Password</label>
+                            <input type="password" id="vendorPassword" class="form-control" placeholder="Vendor@123" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendorPhone">Phone Number</label>
+                            <input type="text" id="vendorPhone" class="form-control" placeholder="+266 2231 9999" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorLocation">Market Location (Maseru)</label>
+                            <div style="display:flex;gap:0.5rem;align-items:flex-end;">
+                                <input type="text" id="vendorLocation" class="form-control" placeholder="e.g. Maseru Central Market, Stall 8" required oninput="clearGeoResult()">
+                                <button type="button" class="btn btn-ghost" id="geocodeBtn" onclick="autoGeocodeLocation()" title="Auto-detect coordinates from location name" style="white-space:nowrap;flex-shrink:0;">
+                                    <i class="fa-solid fa-location-dot"></i> Find GPS
+                                </button>
+                            </div>
+                            <small id="geocodeStatus" style="font-size:0.76rem;color:var(--text-muted,#64748b);margin-top:0.3rem;display:none;"></small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendorLat">Latitude <small style="color:var(--text-muted,#64748b);">(auto-filled)</small></label>
+                            <input type="number" step="any" id="vendorLat" class="form-control" value="-29.3138" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorLng">Longitude <small style="color:var(--text-muted,#64748b);">(auto-filled)</small></label>
+                            <input type="number" step="any" id="vendorLng" class="form-control" value="27.4842" required>
+                        </div>
+                    </div>
+                    <div id="newVendorAlert" class="auth-alert hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('newVendorModal')">Cancel</button>
+                    <button type="submit" id="saveVendorBtn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 8: Attach Real Batch Photo Before Delivery Driver Departs -->
+    <div id="batchPhotoModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-camera"></i> Real Produce Batch Photo</h3>
+                <button type="button" class="modal-close" onclick="closeModal('batchPhotoModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="batchPhotoForm" onsubmit="submitBatchPhoto(event)">
+                <input type="hidden" id="batchPhotoSaleId">
+                <div class="modal-body">
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Before the driver leaves the Maseru depot, attach a photo of the actual fruit crates going to this vendor so they can inspect produce quality before arrival.
+                    </p>
+
+                    <!-- Quick Preset Crate Photos -->
+                    <label style="display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 0.4rem; color: var(--text-secondary);">
+                        Select Real Crate Inspection Photo Preset:
+                    </label>
+                    <div class="batch-preset-grid">
+                        <div class="batch-preset-item" onclick="selectBatchPreset('https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=800&q=80', 'Apples: 10kg crates sorted, grade A red apples, no bruising, cold chain checked.', this)">
+                            <img src="https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=400&q=80" alt="Apple Crates">
+                            <span>Apple Crates</span>
+                        </div>
+                        <div class="batch-preset-item" onclick="selectBatchPreset('https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=800&q=80', 'Oranges: 20kg crates sorted, ripe citrus, fresh harvest from Western Cape.', this)">
+                            <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80" alt="Orange Crates">
+                            <span>Orange Crates</span>
+                        </div>
+                        <div class="batch-preset-item" onclick="selectBatchPreset('https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=800&q=80', 'Bananas: 9kg crates, firm yellow clusters, ready for street retail.', this)">
+                            <img src="https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=400&q=80" alt="Banana Crates">
+                            <span>Banana Crates</span>
+                        </div>
+                        <div class="batch-preset-item" onclick="selectBatchPreset('https://images.unsplash.com/photo-1537640538966-79f369143f8f?auto=format&fit=crop&w=800&q=80', 'Table Grapes: 7kg crates, sweet purple grapes, chilled, verified undamaged.', this)">
+                            <img src="https://images.unsplash.com/photo-1537640538966-79f369143f8f?auto=format&fit=crop&w=400&q=80" alt="Grape Crates">
+                            <span>Grape Crates</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="batchPhotoUrl">Photo URL (Actual Batch Photo)</label>
+                        <input type="url" id="batchPhotoUrl" class="form-control" placeholder="https://..." required oninput="previewBatchPhotoInput()">
+                    </div>
+
+                    <!-- Live Image Preview -->
+                    <div id="batchPhotoPreviewContainer" style="margin-top: 0.75rem; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); max-height: 180px; display: none; background: #000;">
+                        <img id="batchPhotoPreviewImg" src="" alt="Crate batch preview" style="width: 100%; height: 180px; object-fit: cover;">
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="batchInspectionNotes">Depot Quality Inspection Notes</label>
+                        <input type="text" id="batchInspectionNotes" class="form-control" placeholder="e.g. Inspected by driver before departure. Fruit crates sealed, cold chain intact." required>
+                    </div>
+
+                    <div id="batchPhotoAlert" class="auth-alert hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('batchPhotoModal')">Cancel</button>
+                    <button type="submit" id="saveBatchPhotoBtn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm and Save Batch Photo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 9: Vendor View Real Batch Photo Before Delivery Arrives -->
+    <div id="viewBatchModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-shield-halved"></i> Real Crate Inspection Photo</h3>
+                <button type="button" class="modal-close" onclick="closeModal('viewBatchModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                    <strong style="color: var(--brand-sky);" id="viewBatchOrderTitle">Order #</strong>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary);">
+                        Photo of the actual crates inspected at Batloung Farm Depot before dispatch.
+                    </p>
+                </div>
+
+                <div style="border-radius: var(--radius-md); overflow: hidden; border: 2px solid var(--border-color); background: #000; margin-bottom: 1rem;">
+                    <img id="viewBatchImg" src="" alt="Real Batch Photo" style="width: 100%; max-height: 280px; object-fit: cover; display: block;">
+                </div>
+
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                    <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.25rem;">Quality Inspection Notes</div>
+                    <p id="viewBatchNotes" style="font-size: 0.9rem; color: var(--text-primary); margin: 0;"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeModal('viewBatchModal')"><i class="fa-solid fa-check"></i> Close Inspection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js?v=20261121c"></script>
+</body>
+</html>
